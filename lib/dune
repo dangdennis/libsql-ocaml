@@ -1,0 +1,4 @@
+(library
+ (name libsql)
+ (public_name libsql)
+ (libraries ctypes ctypes-foreign))

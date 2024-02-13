@@ -1,0 +1,9 @@
+﻿version: "3.8"
+services:
+  libsql:
+    image: tvandinther/turso:v0.87.7
+    command: ["dev", "--db-file", "/data/chinook.db"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./chinook.db:/data/chinook.db
