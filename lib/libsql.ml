@@ -49,14 +49,14 @@ type connection_type =
   | EmbeddedReplica of replica_config
   | SyncedDatabase of replica_config
 
-(** Abstract database handle - for now using unit, will be replaced with C bindings *)
-type database = unit
+(** Abstract database handle - using C bindings *)
+type database = Libsql_bindings.libsql_database_t
 
 (** Abstract connection handle *)
-type connection = unit
+type connection = Libsql_bindings.libsql_connection_t
 
 (** Abstract statement handle *)
-type statement = unit
+type statement = Libsql_bindings.libsql_stmt_t
 
 (** Abstract transaction handle *)
 type transaction = unit
@@ -160,9 +160,8 @@ let open_synced_database ?config ~db_path ~primary_url () =
   })
 
 (** Close a database *)
-let close_database _db = 
-  (* TODO: Implement with C bindings *)
-  ()
+let close_database db = 
+  Libsql_bindings.libsql_close db
 
 (** Sync a replicated database *)
 let sync _db = 
@@ -170,14 +169,28 @@ let sync _db =
   { frame_no = 0; frames_synced = 0 }
 
 (** Connect to a database *)
-let connect _db = 
-  (* TODO: Implement with C bindings *)
-  ()
+let connect db = 
+  let open Ctypes in
+  let connection_ptr = allocate (ptr void) (from_voidp void null) in
+  let error_ptr = allocate (ptr char) (from_voidp char null) in
+  
+  let result = Libsql_bindings.libsql_connect db connection_ptr error_ptr in
+  
+  if result = 0 then
+    !@ connection_ptr
+  else
+    let error_msg = 
+      let err_ptr = !@ error_ptr in
+      if not (is_null err_ptr) then
+        coerce (ptr char) string err_ptr
+      else
+        "Unknown error connecting to database"
+    in
+    raise (Libsql_error (result, error_msg))
 
 (** Close a connection *)
-let close_connection _conn = 
-  (* TODO: Implement with C bindings *)
-  ()
+let close_connection conn = 
+  Libsql_bindings.libsql_disconnect conn
 
 (** {1 Statement Operations} *)
 
