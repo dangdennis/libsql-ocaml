@@ -113,10 +113,46 @@ let update_config ?auth_token ?read_your_writes ?encryption_key ?sync_interval b
 (** {1 Database Operations} *)
 
 (** Open a database connection with optional configuration *)
-let open_database ?config _connection_type = 
-  (* TODO: Implement with C bindings *)
-  let _ = config in  (* Suppress unused warning for now *)
-  failwith "Not implemented yet"
+let open_database ?config connection_type = 
+  let open Ctypes in
+  let _ = config in (* Suppress unused warning for now *)
+  let db_ptr = allocate (ptr void) (from_voidp void null) in
+  let error_ptr = allocate (ptr char) (from_voidp char null) in
+  
+  let result = match connection_type with
+    | Local local_config ->
+        Libsql_bindings.libsql_open_file local_config.path db_ptr error_ptr
+    | Remote remote_config ->
+        let auth_token = Option.value remote_config.auth_token ~default:"" in
+        Libsql_bindings.libsql_open_remote remote_config.url auth_token db_ptr error_ptr
+    | EmbeddedReplica replica_config | SyncedDatabase replica_config ->
+        let auth_token = Option.value replica_config.auth_token ~default:"" in
+        let read_your_writes_char = match replica_config.read_your_writes with
+          | Some true -> Char.chr 1
+          | _ -> Char.chr 0
+        in
+        let encryption_key = Option.value replica_config.encryption_key ~default:"" in
+        Libsql_bindings.libsql_open_sync 
+          replica_config.db_path 
+          replica_config.primary_url 
+          auth_token 
+          read_your_writes_char 
+          encryption_key 
+          db_ptr 
+          error_ptr
+  in
+  
+  if result = 0 then
+    !@ db_ptr
+  else
+    let error_msg = 
+      let err_ptr = !@ error_ptr in
+      if not (is_null err_ptr) then
+        coerce (ptr char) string err_ptr
+      else
+        "Unknown error opening database"
+    in
+    raise (Libsql_error (result, error_msg))
 
 (** Convenience functions for opening specific connection types *)
 let open_local ?config path = 
