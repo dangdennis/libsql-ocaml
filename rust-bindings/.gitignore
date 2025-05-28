@@ -1,8 +1,0 @@
-libsql/
-target/
-bindings/
-Cargo.lock
-
-rust-bindings/csharp-bindings/bindings
-rust-bindings/libsql
-rust-bindings/target
