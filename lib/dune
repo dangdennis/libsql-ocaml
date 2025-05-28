@@ -2,10 +2,4 @@
  (name libsql)
  (public_name libsql)
  (libraries ctypes ctypes-foreign)
- (c_library_flags
-  (:standard
-   (:include c_flags.sexp)))
- (foreign_stubs
-  (language c)
-  (names libsql_stubs)
-  (include_dirs include)))
+ (modules libsql libsql_bindings))
