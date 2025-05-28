@@ -10,11 +10,11 @@ homepage: "https://github.com/username/reponame"
 doc: "https://url/to/documentation"
 bug-reports: "https://github.com/username/reponame/issues"
 depends: [
-  "ocaml"
-  "dune" {>= "3.12"}
+  "ocaml" {>= "5.0.0"}
+  "dune" {>= "3.17" & >= "3.0.0"}
   "ocamlformat"
-  "ctypes" {= "0.21.1"}
-  "ctypes-foreign" {= "0.21.1"}
+  "ctypes"
+  "ctypes-foreign"
   "odoc" {with-doc}
 ]
 build: [

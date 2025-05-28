@@ -1,4 +1,4 @@
-(lang dune 3.12)
+(lang dune 3.17)
 
 (name libsql)
 
@@ -19,14 +19,12 @@
  (name libsql)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends
-  ocaml
-  dune
+(depends
+  (ocaml (>= 5.0.0))
+  (dune (>= 3.0.0))
   ocamlformat
-  (ctypes
-   (= 0.21.1))
-  (ctypes-foreign
-   (= 0.21.1)))
+  ctypes
+  ctypes-foreign)
  (tags
   (topics "to describe" your project)))
 
