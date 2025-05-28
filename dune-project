@@ -19,12 +19,16 @@
  (name libsql)
  (synopsis "A short synopsis")
  (description "A longer description")
-(depends
-  (ocaml (>= 5.0.0))
-  (dune (>= 3.0.0))
+ (depends
+  (ocaml
+   (>= 5.0.0))
+  (dune
+   (>= 3.0.0))
   ocamlformat
   ctypes
-  ctypes-foreign)
+  ctypes-foreign
+  eio
+  eio_main)
  (tags
   (topics "to describe" your project)))
 
