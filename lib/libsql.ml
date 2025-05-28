@@ -16,12 +16,38 @@ type replicated = {
   frames_synced : int;
 }
 
-(** Database connection types *)
+(** Database connection configuration records with full config embedded *)
+type local_config = {
+  path : string;
+  auth_token : string option;
+  read_your_writes : bool option;
+  encryption_key : string option;
+  sync_interval : float option;
+}
+
+type remote_config = {
+  url : string;
+  auth_token : string option;
+  read_your_writes : bool option;
+  encryption_key : string option;
+  sync_interval : float option;
+}
+
+type replica_config = {
+  db_path : string;
+  primary_url : string;
+  auth_token : string option;
+  read_your_writes : bool option;
+  encryption_key : string option;
+  sync_interval : float option;
+}
+
+(** Database connection types with named fields *)
 type connection_type =
-  | Local of string  (* file path *)
-  | Remote of string * string option  (* url * auth_token *)
-  | EmbeddedReplica of string * string * config  (* db_path * primary_url * config *)
-  | SyncedDatabase of string * string * config   (* db_path * primary_url * config *)
+  | Local of local_config
+  | Remote of remote_config  
+  | EmbeddedReplica of replica_config
+  | SyncedDatabase of replica_config
 
 (** Abstract database handle - for now using unit, will be replaced with C bindings *)
 type database = unit
@@ -67,24 +93,71 @@ let default_config = {
   sync_interval = None;
 }
 
-let with_auth_token token config = 
-  { config with auth_token = Some token }
+(** OCaml-idiomatic configuration using optional labeled arguments *)
+let make_config ?auth_token ?read_your_writes ?encryption_key ?sync_interval () = {
+  auth_token;
+  read_your_writes;
+  encryption_key;
+  sync_interval;
+}
 
-let with_read_your_writes ryw config = 
-  { config with read_your_writes = Some ryw }
-
-let with_encryption key config = 
-  { config with encryption_key = Some key }
-
-let with_sync_interval interval config = 
-  { config with sync_interval = Some interval }
+(** Update configuration using functional record update *)
+let update_config ?auth_token ?read_your_writes ?encryption_key ?sync_interval base_config =
+  {
+    auth_token = (match auth_token with Some v -> Some v | None -> base_config.auth_token);
+    read_your_writes = (match read_your_writes with Some v -> Some v | None -> base_config.read_your_writes);
+    encryption_key = (match encryption_key with Some v -> Some v | None -> base_config.encryption_key);
+    sync_interval = (match sync_interval with Some v -> Some v | None -> base_config.sync_interval);
+  }
 
 (** {1 Database Operations} *)
 
-(** Open a database connection *)
-let open_database _connection_type = 
+(** Open a database connection with optional configuration *)
+let open_database ?config _connection_type = 
   (* TODO: Implement with C bindings *)
+  let _ = config in  (* Suppress unused warning for now *)
   failwith "Not implemented yet"
+
+(** Convenience functions for opening specific connection types *)
+let open_local ?config path = 
+  open_database ?config (Local { 
+    path; 
+    auth_token = None; 
+    read_your_writes = None; 
+    encryption_key = None; 
+    sync_interval = None 
+  })
+
+let open_remote ?config ?auth_token url = 
+  open_database ?config (Remote { 
+    url; 
+    auth_token; 
+    read_your_writes = None; 
+    encryption_key = None; 
+    sync_interval = None 
+  })
+
+let open_embedded_replica ?config ~db_path ~primary_url () = 
+  let cfg = Option.value config ~default:default_config in
+  open_database (EmbeddedReplica { 
+    db_path; 
+    primary_url; 
+    auth_token = cfg.auth_token;
+    read_your_writes = cfg.read_your_writes;
+    encryption_key = cfg.encryption_key;
+    sync_interval = cfg.sync_interval;
+  })
+
+let open_synced_database ?config ~db_path ~primary_url () = 
+  let cfg = Option.value config ~default:default_config in
+  open_database (SyncedDatabase { 
+    db_path; 
+    primary_url; 
+    auth_token = cfg.auth_token;
+    read_your_writes = cfg.read_your_writes;
+    encryption_key = cfg.encryption_key;
+    sync_interval = cfg.sync_interval;
+  })
 
 (** Close a database *)
 let close_database _db = 
@@ -279,43 +352,106 @@ let require_bytes row name =
   | Some b -> b
   | None -> failwith ("Column not found or not bytes: " ^ name)
 
-(** {1 Builder Pattern for Connection Types} *)
+(** {1 Idiomatic OCaml Connection API} *)
 
-module ConnectionBuilder = struct
-  type t = {
-    connection_type : connection_type;
-    config : config;
-  }
+(** Create connection types with labeled arguments - much more OCaml-like *)
+module Connection = struct
   
-  let local path = 
-    { connection_type = Local path; config = default_config }
+  (** Create a local file database connection *)
+  let local ?auth_token ?read_your_writes ?encryption_key ?sync_interval path =
+    let config = make_config ?auth_token ?read_your_writes ?encryption_key ?sync_interval () in
+    Local { 
+      path; 
+      auth_token = config.auth_token; 
+      read_your_writes = config.read_your_writes; 
+      encryption_key = config.encryption_key; 
+      sync_interval = config.sync_interval 
+    }, Some config
     
-  let remote url = 
-    { connection_type = Remote (url, None); config = default_config }
+  (** Create a remote database connection *)  
+  let remote ?auth_token ?read_your_writes ?encryption_key ?sync_interval url =
+    let config = make_config ?auth_token ?read_your_writes ?encryption_key ?sync_interval () in
+    Remote { 
+      url; 
+      auth_token = config.auth_token; 
+      read_your_writes = config.read_your_writes; 
+      encryption_key = config.encryption_key; 
+      sync_interval = config.sync_interval 
+    }, Some config
     
-  let embedded_replica ~db_path ~primary_url = 
-    { connection_type = EmbeddedReplica (db_path, primary_url, default_config); 
-      config = default_config }
-      
-  let synced_database ~db_path ~primary_url = 
-    { connection_type = SyncedDatabase (db_path, primary_url, default_config); 
-      config = default_config }
-  
-  let with_auth_token token t = 
-    let new_config = with_auth_token token t.config in
-    { t with config = new_config }
+  (** Create an embedded replica connection *)
+  let embedded_replica ?auth_token ?read_your_writes ?encryption_key ?sync_interval ~db_path ~primary_url () =
+    let config = make_config ?auth_token ?read_your_writes ?encryption_key ?sync_interval () in
+    EmbeddedReplica { 
+      db_path; 
+      primary_url; 
+      auth_token = config.auth_token; 
+      read_your_writes = config.read_your_writes; 
+      encryption_key = config.encryption_key; 
+      sync_interval = config.sync_interval 
+    }, Some config
     
-  let with_read_your_writes ryw t = 
-    let new_config = with_read_your_writes ryw t.config in
-    { t with config = new_config }
+  (** Create a synced database connection *)
+  let synced_database ?auth_token ?read_your_writes ?encryption_key ?sync_interval ~db_path ~primary_url () =
+    let config = make_config ?auth_token ?read_your_writes ?encryption_key ?sync_interval () in
+    SyncedDatabase { 
+      db_path; 
+      primary_url; 
+      auth_token = config.auth_token; 
+      read_your_writes = config.read_your_writes; 
+      encryption_key = config.encryption_key; 
+      sync_interval = config.sync_interval 
+    }, Some config
     
-  let with_encryption key t = 
-    let new_config = with_encryption key t.config in
-    { t with config = new_config }
-    
-  let with_sync_interval interval t = 
-    let new_config = with_sync_interval interval t.config in
-    { t with config = new_config }
-    
-  let build t = t.connection_type
+  (** Open any connection type *)
+  let open_connection (connection_type, config) =
+    open_database ?config connection_type
 end
+
+(** Alternative: Direct functions (even more concise) *)
+
+(** Open local database with optional configuration *)
+let open_local_db ?auth_token ?read_your_writes ?encryption_key ?sync_interval path =
+  let config = make_config ?auth_token ?read_your_writes ?encryption_key ?sync_interval () in
+  open_database ~config (Local { 
+    path; 
+    auth_token = config.auth_token; 
+    read_your_writes = config.read_your_writes; 
+    encryption_key = config.encryption_key; 
+    sync_interval = config.sync_interval 
+  })
+
+(** Open remote database with optional configuration *)
+let open_remote_db ?auth_token ?read_your_writes ?encryption_key ?sync_interval url =
+  let config = make_config ?auth_token ?read_your_writes ?encryption_key ?sync_interval () in
+  open_database ~config (Remote { 
+    url; 
+    auth_token = config.auth_token; 
+    read_your_writes = config.read_your_writes; 
+    encryption_key = config.encryption_key; 
+    sync_interval = config.sync_interval 
+  })
+
+(** Open embedded replica with optional configuration *)
+let open_embedded_replica_db ?auth_token ?read_your_writes ?encryption_key ?sync_interval ~db_path ~primary_url () =
+  let config = make_config ?auth_token ?read_your_writes ?encryption_key ?sync_interval () in
+  open_database ~config (EmbeddedReplica { 
+    db_path; 
+    primary_url; 
+    auth_token = config.auth_token; 
+    read_your_writes = config.read_your_writes; 
+    encryption_key = config.encryption_key; 
+    sync_interval = config.sync_interval 
+  })
+
+(** Open synced database with optional configuration *)
+let open_synced_db ?auth_token ?read_your_writes ?encryption_key ?sync_interval ~db_path ~primary_url () =
+  let config = make_config ?auth_token ?read_your_writes ?encryption_key ?sync_interval () in
+  open_database ~config (SyncedDatabase { 
+    db_path; 
+    primary_url; 
+    auth_token = config.auth_token; 
+    read_your_writes = config.read_your_writes; 
+    encryption_key = config.encryption_key; 
+    sync_interval = config.sync_interval 
+  })
