@@ -1,30 +1,3 @@
-; (foreign_library
-;  (archive_name libsql_macosx_arm64)
-;  (language c)
-;  (enabled_if
-;   (and
-;    (= %{system} macos)
-;    (= %{architecture} arm64)))
-;  (names))
-
-; (foreign_library
-;  (archive_name libsql_linux_amd64)
-;  (language c)
-;  (enabled_if
-;   (and
-;    (= %{system} linux)
-;    (= %{architecture} amd64)))
-;  (names))
-
-; (foreign_library
-;  (archive_name libsql_linux_arm64)
-;  (language c)
-;  (enabled_if
-;   (and
-;    (= %{system} linux)
-;    (= %{architecture} arm64)))
-;  (names))
-
 (library
  (name libsql)
  (modes native)
