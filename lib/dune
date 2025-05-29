@@ -31,4 +31,4 @@
  (public_name libsql)
  (modules libsql libsql_bindings)
  (libraries ctypes ctypes.foreign)
- (foreign_archives libsql_macosx_arm64 libsql_linux_amd64 libsql_linux_arm64))
+ (foreign_archives libsql_macosx_arm64))
