@@ -19,8 +19,8 @@ let test_connect_to_chinook () =
     Printf.printf "All tests passed! 🎉\n"
     
   with
-  | Libsql.Libsql_error (code, msg) ->
-      Printf.eprintf "LibSQL Error (code %d): %s\n" code msg;
+  | Libsql.Libsql_error msg ->
+      Printf.eprintf "LibSQL Error %s\n" msg;
       exit 1
   | exn ->
       Printf.eprintf "Unexpected error: %s\n" (Printexc.to_string exn);

@@ -4,4 +4,4 @@
  (public_name libsql)
  (modules libsql libsql_bindings)
  (libraries ctypes ctypes.foreign)
- (foreign_archives liblibsql))
+ (foreign_archives ilibsql))
