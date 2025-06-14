@@ -1,7 +1,9 @@
-(test
- (name test_libsql)
- (libraries libsql alcotest))
+
 
 (test
  (name test_hrana_encode)
  (libraries libsql alcotest))
+
+ (test
+  (name test_hrana_decode)
+  (libraries libsql alcotest))

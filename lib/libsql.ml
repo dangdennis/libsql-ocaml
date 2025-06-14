@@ -2,6 +2,7 @@
 
 open Ctypes
 module Hrana_encode = Hrana_encode
+module Hrana_decode = Hrana_decode
 
 (** {1 Types} *)
 
