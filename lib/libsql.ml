@@ -1,17 +1,18 @@
 (** LibSQL OCaml API - Simple bindings for libSQL database *)
 
 open Ctypes
+module Hrana_encode = Hrana_encode
 
 (** {1 Types} *)
 
+type database = [ `libsql_database_t ] structure
 (** Abstract database handle *)
-type database = [`libsql_database_t] structure
 
+type connection = [ `libsql_connection_t ] structure
 (** Abstract connection handle *)
-type connection = [`libsql_connection_t] structure
 
-(** Abstract statement handle *)  
-type statement = [`libsql_statement_t] structure
+type statement = [ `libsql_statement_t ] structure
+(** Abstract statement handle *)
 
 (** {1 Exceptions} *)
 
@@ -23,10 +24,9 @@ exception Libsql_error of string
 let check_error err_ptr error_context =
   if not (is_null err_ptr) then
     let error_msg = Libsql_bindings.libsql_error_message err_ptr in
-    let msg = if not (is_null error_msg) then 
-      coerce (ptr char) string error_msg 
-    else 
-      "Unknown error in " ^ error_context
+    let msg =
+      if not (is_null error_msg) then coerce (ptr char) string error_msg
+      else "Unknown error in " ^ error_context
     in
     raise (Libsql_error msg)
 
@@ -35,29 +35,29 @@ let check_error err_ptr error_context =
 (** Open a local database file *)
 let open_local path =
   let desc = make Libsql_bindings.libsql_database_desc_t in
-  
+
   (* Set path *)
   let path_ptr = CArray.of_string path |> CArray.start in
   setf desc Libsql_bindings.desc_path path_ptr;
-  
+
   (* Set other fields to NULL/default *)
   setf desc Libsql_bindings.desc_url (from_voidp char null);
   setf desc Libsql_bindings.desc_auth_token (from_voidp char null);
   setf desc Libsql_bindings.desc_encryption_key (from_voidp char null);
-  setf desc Libsql_bindings.desc_sync_interval (Unsigned.UInt64.zero);
+  setf desc Libsql_bindings.desc_sync_interval Unsigned.UInt64.zero;
   setf desc Libsql_bindings.desc_cypher Libsql_bindings.LIBSQL_CYPHER_DEFAULT;
   setf desc Libsql_bindings.desc_disable_read_your_writes false;
   setf desc Libsql_bindings.desc_webpki false;
   setf desc Libsql_bindings.desc_synced false;
   setf desc Libsql_bindings.desc_disable_safety_assert false;
-  
+
   (* Initialize database *)
   let db = Libsql_bindings.libsql_database_init desc in
-  
+
   (* Check for errors *)
   let err_ptr = getf db Libsql_bindings.database_err in
   check_error err_ptr "open_local";
-  
+
   db
 
 (** Connect to a database *)
@@ -68,12 +68,10 @@ let connect db =
   conn
 
 (** Close a database *)
-let close_database db =
-  Libsql_bindings.libsql_database_deinit db
+let close_database db = Libsql_bindings.libsql_database_deinit db
 
 (** Close a connection *)
-let close_connection conn =
-  Libsql_bindings.libsql_connection_deinit conn
+let close_connection conn = Libsql_bindings.libsql_connection_deinit conn
 
 (** {1 Statement Operations} *)
 
@@ -93,8 +91,7 @@ let execute stmt =
   Unsigned.UInt64.to_int64 rows_changed
 
 (** Close a statement *)
-let close_statement stmt =
-  Libsql_bindings.libsql_statement_deinit stmt
+let close_statement stmt = Libsql_bindings.libsql_statement_deinit stmt
 
 (** {1 Convenience Functions} *)
 

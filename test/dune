@@ -1,3 +1,7 @@
 (test
  (name test_libsql)
- (libraries libsql))
+ (libraries libsql alcotest))
+
+(test
+ (name test_encode)
+ (libraries libsql alcotest))

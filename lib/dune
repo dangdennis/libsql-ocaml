@@ -2,6 +2,5 @@
  (name libsql)
  (modes native)
  (public_name libsql)
- (modules libsql libsql_bindings)
- (libraries ctypes ctypes.foreign)
+ (libraries ctypes ctypes.foreign eio_main eio uri yojson base64 websocket)
  (foreign_archives libsql))

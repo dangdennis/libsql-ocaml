@@ -17,6 +17,12 @@ depends: [
   "ctypes-foreign"
   "eio"
   "eio_main"
+  "uri"
+  "yojson"
+  "base64"
+  "websocket"
+  "piaf"
+  "alcotest"
   "odoc" {with-doc}
 ]
 build: [

@@ -28,7 +28,13 @@
   ctypes
   ctypes-foreign
   eio
-  eio_main)
+  eio_main
+  uri
+  yojson
+  base64
+  websocket
+  piaf
+  alcotest)
  (tags
   (topics "to describe" your project)))
 
