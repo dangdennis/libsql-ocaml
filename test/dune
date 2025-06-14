@@ -3,5 +3,5 @@
  (libraries libsql alcotest))
 
 (test
- (name test_encode)
+ (name test_hrana_encode)
  (libraries libsql alcotest))
