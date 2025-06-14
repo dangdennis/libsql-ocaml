@@ -141,7 +141,7 @@ let test_encode_simple_object () =
     "simple object helper" "{\"name\":\"John\",\"age\":25}" result
 
 let test_empty_object () =
-  let encoder buf state () = () in
+  let encoder _ _ () = () in
   let result = write_json_object encoder () in
   Alcotest.(check string) "empty object" "{}" result
 
